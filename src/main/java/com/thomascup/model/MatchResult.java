@@ -8,9 +8,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MatchResult {
+    private String id; // Unique identifier for idempotency
     private String teamA;
     private String teamB;
     private int teamAScore;
     private int teamBScore;
     private String winner;
+    private java.time.LocalDateTime matchDateTime;
 }

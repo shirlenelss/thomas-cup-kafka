@@ -28,7 +28,15 @@ public class MatchResultControllerTest {
 
     @Test
     public void testSendMatchResult() throws Exception {
-        MatchResult result = new MatchResult("TeamA", "TeamB", 3, 2, "TeamA");
+        MatchResult result = new MatchResult(
+            "match-1", // id
+            "TeamA", // teamA
+            "TeamB", // teamB
+            3, // teamAScore
+            2, // teamBScore
+            "TeamA", // winner
+            java.time.LocalDateTime.now() // matchDateTime
+        );
         mockMvc.perform(post("/api/match-results")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(result)))
@@ -37,4 +45,3 @@ public class MatchResultControllerTest {
         Mockito.verify(matchResultProducer).sendMatchResult(result);
     }
 }
-
