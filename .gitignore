@@ -1,0 +1,26 @@
+# IDE files
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+
+# Maven output
+target/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test reports
+surefire-reports/
+
+# Maven wrapper
+.mvn/timing.properties
+
+# Others
+*.swp
+
