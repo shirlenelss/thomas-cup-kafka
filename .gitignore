@@ -1,15 +1,15 @@
+# Maven
+/target/
+
+# Logs
+*.log
+
 # IDE files
 .idea/
 *.iml
 .classpath
 .project
 .settings/
-
-# Maven output
-target/
-
-# Logs
-*.log
 
 # OS files
 .DS_Store
