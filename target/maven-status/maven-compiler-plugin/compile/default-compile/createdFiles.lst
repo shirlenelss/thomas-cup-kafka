@@ -1,5 +1,0 @@
-com/thomascup/controller/MatchResultController.class
-com/thomascup/model/MatchResult.class
-com/thomascup/service/MatchResultProducer.class
-com/thomascup/ThomasCupKafkaApplication.class
-com/thomascup/config/KafkaProducerConfig.class
