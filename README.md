@@ -19,6 +19,10 @@
   - Validate badminton scoring rules.
 - **Jackson Compatibility**: Ensured the MatchResult model is compatible with JSON serialization/deserialization for Spring controllers.
 - **Git Operations**: Committed and pushed all changes to the remote repository.
+- **Database Consumer**: Added a dedicated consumer (MatchResultDbConsumer) that listens to two separate Kafka topics:
+  - `new-game`: Inserts a new game into the PostgreSQL match_results table (with ON CONFLICT DO NOTHING).
+  - `update-score`: Updates the score, winner, and matchDateTime for an existing game in the match_results table.
+  - Uses PostgreSQL via Docker (see below for setup).
 
 ## How to Run
 
@@ -33,6 +37,50 @@
 3. Run tests:
    ```sh
    mvn test
+   ```
+
+## PostgreSQL & Docker Setup
+
+1. Add the following service to your `docker-compose.yml`:
+   ```yaml
+   postgres:
+     image: postgres:15
+     environment:
+       POSTGRES_DB: thomas_cup
+       POSTGRES_USER: thomas
+       POSTGRES_PASSWORD: thomas
+     ports:
+       - "5432:5432"
+     volumes:
+       - pgdata:/var/lib/postgresql/data
+   volumes:
+     pgdata:
+   ```
+2. Start PostgreSQL:
+   ```sh
+   docker compose up -d
+   ```
+3. Create the table:
+   ```sql
+   CREATE TABLE match_results (
+     id VARCHAR NOT NULL,
+     teamA VARCHAR,
+     teamB VARCHAR,
+     teamAScore INT,
+     teamBScore INT,
+     winner VARCHAR,
+     matchDateTime TIMESTAMP,
+     gameNumber INT,
+     PRIMARY KEY (id, gameNumber)
+   );
+   ```
+4. Configure your `application.properties`:
+   ```properties
+   spring.datasource.url=jdbc:postgresql://localhost:5432/thomas_cup
+   spring.datasource.username=thomas
+   spring.datasource.password=thomas
+   spring.datasource.driver-class-name=org.postgresql.Driver
+   spring.jpa.hibernate.ddl-auto=none
    ```
 
 ## Notes
