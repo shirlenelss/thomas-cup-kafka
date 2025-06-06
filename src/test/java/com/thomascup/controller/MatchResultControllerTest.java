@@ -35,7 +35,8 @@ public class MatchResultControllerTest {
             3, // teamAScore
             2, // teamBScore
             "TeamA", // winner
-            java.time.LocalDateTime.now() // matchDateTime
+            java.time.LocalDateTime.now(), // matchDateTime,
+            1 //  gameNumber
         );
         mockMvc.perform(post("/api/match-results")
                 .contentType(MediaType.APPLICATION_JSON)

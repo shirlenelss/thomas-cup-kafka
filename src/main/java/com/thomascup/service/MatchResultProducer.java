@@ -15,11 +15,12 @@ public class MatchResultProducer {
     @Autowired
     private KafkaTemplate<String, MatchResult> kafkaTemplate;
 
-    // In-memory store for idempotency: id -> last processed MatchResult
+    // In-memory store for idempotency: id+gameNumber -> last processed MatchResult
     private final Map<String, MatchResult> latestResults = new ConcurrentHashMap<>();
 
     public void sendMatchResult(MatchResult matchResult) {
-        MatchResult last = latestResults.get(matchResult.getId());
+        String key = matchResult.getId() + ":" + matchResult.getGameNumber();
+        MatchResult last = latestResults.get(key);
         boolean shouldSend = false;
         if (last == null) {
             shouldSend = true;
@@ -31,7 +32,7 @@ public class MatchResultProducer {
         }
         if (shouldSend) {
             kafkaTemplate.send(TOPIC, matchResult);
-            latestResults.put(matchResult.getId(), matchResult);
+            latestResults.put(key, matchResult);
         }
     }
 }

@@ -14,7 +14,7 @@ public class MatchResultConsumerTest {
     @Test
     public void testListenGroup1LogsMessage() {
         Logger logger = mock(Logger.class);
-        MatchResult matchResult = new MatchResult("match-1", "TeamA", "TeamB", 3, 2, "TeamA", LocalDateTime.now());
+        MatchResult matchResult = new MatchResult("match-1", "TeamA", "TeamB", 3, 2, "TeamA", LocalDateTime.now(), 1);
         ConsumerRecord<String, MatchResult> record = new ConsumerRecord<>(
                 "thomas-cup-matches", 1, 0L, "match-1", matchResult);
 
@@ -26,7 +26,7 @@ public class MatchResultConsumerTest {
     @Test
     public void testListenGroup2LogsMessage() {
         Logger logger = mock(Logger.class);
-        MatchResult matchResult = new MatchResult("match-2", "TeamC", "TeamD", 1, 4, "TeamD", LocalDateTime.now());
+        MatchResult matchResult = new MatchResult("match-2", "TeamC", "TeamD", 1, 4, "TeamD", LocalDateTime.now(), 1);
         ConsumerRecord<String, MatchResult> record = new ConsumerRecord<>(
                 "thomas-cup-matches", 0, 0L, "match-2", matchResult);
 
@@ -43,4 +43,3 @@ public class MatchResultConsumerTest {
         protected Logger getLogger() { return logger; }
     }
 }
-

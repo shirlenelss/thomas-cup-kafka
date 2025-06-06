@@ -29,7 +29,8 @@ public class MatchResultProducerTest {
             3, // teamAScore
             2, // teamBScore
             "TeamA", // winner
-            java.time.LocalDateTime.now() // matchDateTime
+            java.time.LocalDateTime.now(), // matchDateTime
+            1 // gameNumber
         );
         matchResultProducer.sendMatchResult(result);
         verify(kafkaTemplate).send("thomas-cup-matches", result);
@@ -44,7 +45,8 @@ public class MatchResultProducerTest {
             3,
             2,
             "TeamA",
-            java.time.LocalDateTime.of(2025, 6, 6, 10, 0)
+            java.time.LocalDateTime.of(2025, 6, 6, 10, 0),
+            1
         );
         MatchResult result2 = new MatchResult(
             "match-1",
@@ -53,7 +55,8 @@ public class MatchResultProducerTest {
             3,
             2,
             "TeamA",
-            java.time.LocalDateTime.of(2025, 6, 6, 10, 0)
+            java.time.LocalDateTime.of(2025, 6, 6, 10, 0),
+            1
         );
         matchResultProducer.sendMatchResult(result1);
         matchResultProducer.sendMatchResult(result2);
@@ -70,7 +73,8 @@ public class MatchResultProducerTest {
             3,
             2,
             "TeamA",
-            java.time.LocalDateTime.of(2025, 6, 6, 10, 0)
+            java.time.LocalDateTime.of(2025, 6, 6, 10, 0),
+            1
         );
         MatchResult result2 = new MatchResult(
             "match-1",
@@ -79,7 +83,8 @@ public class MatchResultProducerTest {
             4, // score changed
             2,
             "TeamA",
-            java.time.LocalDateTime.of(2025, 6, 6, 10, 0)
+            java.time.LocalDateTime.of(2025, 6, 6, 10, 0),
+            1
         );
         matchResultProducer.sendMatchResult(result1);
         matchResultProducer.sendMatchResult(result2);
