@@ -1,0 +1,11 @@
+{"namespace": "example.avro",
+ "type": "record",
+ "name": "MatchResultHead",
+ "fields": [
+     {"name": "id",  "type": ["int", "null"]},
+     {"name": "name", "type": "string"},
+     {"name": "teamA", "type": ["string", "null"]},
+     {"name": "teamB", "type": ["string", "null"]},
+     {"name": "matchDateTime", "type": ["string", "null"]}
+ ]
+}
