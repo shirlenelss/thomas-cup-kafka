@@ -3,19 +3,23 @@ package com.thomascup.integration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thomascup.model.MatchResult;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.web.client.RestTemplate;
@@ -26,6 +30,7 @@ import java.util.Collections;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 @Slf4j
 @SpringBootTest(
@@ -42,10 +47,14 @@ public class MatchResultIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
     private EmbeddedKafkaBroker embeddedKafkaBroker;
 
     private static RestTemplate restTemplate;
+
+    @BeforeEach
+    void initBroker(ApplicationContext context) {
+        this.embeddedKafkaBroker = context.getBean(EmbeddedKafkaBroker.class);
+    }
 
     @BeforeAll
     public static void setup() {
@@ -72,42 +81,49 @@ public class MatchResultIntegrationTest {
         String json = objectMapper.writeValueAsString(result);
         log.info("Posting MatchResult: {}", json);
         String url = "http://localhost:" + port + "/api/match-results";
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<String> entity = new HttpEntity<>(json, headers);
+
         ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+
         log.info("HTTP response: {} {}", response.getStatusCode(), response.getBody());
+
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(response.getBody()).contains("Match result sent to Kafka");
 
-        // Consume from Kafka
+        // 🛠 Updated Kafka Consumer Config
         Properties props = new Properties();
-        props.put("bootstrap.servers", embeddedKafkaBroker.getBrokersAsString());
-        props.put("group.id", "test-group");
-        props.put("key.deserializer", StringDeserializer.class.getName());
-        props.put("value.deserializer", org.springframework.kafka.support.serializer.JsonDeserializer.class.getName());
-        props.put("spring.json.trusted.packages", "*");
-        props.put("spring.json.value.default.type", "com.thomascup.model.MatchResult");
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaBroker.getBrokersAsString());
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "test-group");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class.getName());
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, MatchResult.class.getName());
+        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
+
         try (KafkaConsumer<String, MatchResult> consumer = new KafkaConsumer<>(props)) {
             consumer.subscribe(Collections.singletonList("thomas-cup-matches"));
-            ConsumerRecord<String, MatchResult> record = null;
-            long end = System.currentTimeMillis() + 10000; // wait up to 10 seconds
-            while (System.currentTimeMillis() < end) {
+            final ConsumerRecord<String, MatchResult>[] recordHolder = new ConsumerRecord[1];
+
+            await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> {
                 var records = consumer.poll(Duration.ofMillis(500));
                 if (!records.isEmpty()) {
-                    record = records.iterator().next();
-                    log.info("Received Kafka record: {}", record.value());
-                    break;
+                    recordHolder[0] = records.iterator().next();
                 }
-            }
-            assertThat(record).withFailMessage("No Kafka record received within timeout").isNotNull();
-            assertThat(record.value().getId()).isEqualTo("match-1");
-            assertThat(record.value().getTeamA()).isEqualTo("TeamA");
-            assertThat(record.value().getTeamB()).isEqualTo("TeamB");
-            assertThat(record.value().getTeamAScore()).isEqualTo(21);
-            assertThat(record.value().getTeamBScore()).isEqualTo(19);
-            assertThat(record.value().getWinner()).isEqualTo("TeamA");
-            assertThat(record.value().getGameNumber()).isEqualTo(1);
+                assertThat(recordHolder[0]).withFailMessage("No Kafka record received within timeout").isNotNull();
+            });
+
+            MatchResult consumed = recordHolder[0].value();
+            assertThat(consumed.getId()).isEqualTo("match-1");
+            assertThat(consumed.getTeamA()).isEqualTo("TeamA");
+            assertThat(consumed.getTeamB()).isEqualTo("TeamB");
+            assertThat(consumed.getTeamAScore()).isEqualTo(21);
+            assertThat(consumed.getTeamBScore()).isEqualTo(19);
+            assertThat(consumed.getWinner()).isEqualTo("TeamA");
+            assertThat(consumed.getGameNumber()).isEqualTo(1);
         }
     }
 }

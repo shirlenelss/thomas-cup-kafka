@@ -34,6 +34,7 @@ public class KafkaProducerConfig {
         return new KafkaTemplate<>(producerFactory());
     }
 
+    //version 2 
     @Bean
     public ProducerFactory<String, MatchHead> matchHeadProducerFactory() {
         Map<String, Object> configProps = new HashMap<>();
@@ -43,6 +44,7 @@ public class KafkaProducerConfig {
         return new DefaultKafkaProducerFactory<>(configProps);
     }
 
+    //version 2
     @Bean
     public KafkaTemplate<String, MatchHead> matchHeadKafkaTemplate() {
         return new KafkaTemplate<>(matchHeadProducerFactory());

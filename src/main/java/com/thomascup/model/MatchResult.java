@@ -14,9 +14,7 @@ public class MatchResult {
     private String id; // Unique identifier for idempotency
     private String teamA;
     private String teamB;
-    @Setter
     private int teamAScore;
-    @Setter
     private int teamBScore;
     private String winner;
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
@@ -31,19 +29,26 @@ public class MatchResult {
         this.winner = winner;
         this.matchDateTime = matchDateTime;
         this.gameNumber = gameNumber;
-        this.setTeamAScore(teamAScore);
-        this.setTeamBScore(teamBScore);
-
+        validateGameNumber(gameNumber)
+            .setTeamAScore(teamAScore)
+            .setTeamBScore(teamBScore);
     }
 
     public MatchResult() {
         // Default constructor for Jackson
     }
 
-    public void validate() {
+    public MatchResult validateGameNumber(int gameNumber) {
+        // Validate that gameNumber is 1, 2, or 3
         if (!(gameNumber > 0 && gameNumber < 4)) {
             throw new IllegalArgumentException("Game number must be 1, 2, or 3 (badminton match is best of 3 games) but is " + gameNumber);
         }
+        this.gameNumber = gameNumber;
+        return this;
+    }
+
+    public void validate() {
+
         int maxPoints = (gameNumber == 3) ? 15 : 21;
         if (teamAScore < 0 || teamBScore < 0) {
             throw new IllegalArgumentException("Scores must be non-negative");
@@ -55,5 +60,17 @@ public class MatchResult {
         if ((teamAScore > maxPoints && teamAScore < cap) || (teamBScore > maxPoints && teamBScore < cap)) {
             throw new IllegalArgumentException("Scores must not exceed " + maxPoints + " unless deuce up to 30");
         }
+    }
+
+    public MatchResult setTeamAScore(int teamAScore) {
+        this.teamAScore = teamAScore;
+        validate();
+        return this;
+    }
+
+    public MatchResult setTeamBScore(int teamBScore) {
+        this.teamBScore = teamBScore;
+        validate();
+        return this;
     }
 }
