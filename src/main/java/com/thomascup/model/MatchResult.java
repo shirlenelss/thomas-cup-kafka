@@ -3,6 +3,7 @@ package com.thomascup.model;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import lombok.Data;
+import lombok.Setter;
 
 /**
  * This class is now deprecated. Use MatchHead and MatchScores instead.
@@ -13,11 +14,14 @@ public class MatchResult {
     private String id; // Unique identifier for idempotency
     private String teamA;
     private String teamB;
+    @Setter
     private int teamAScore;
+    @Setter
     private int teamBScore;
     private String winner;
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     private java.time.LocalDateTime matchDateTime;
+    @Setter
     private int gameNumber; // 1, 2, or 3
 
     public MatchResult(String id, String teamA, String teamB, int teamAScore, int teamBScore, String winner, java.time.LocalDateTime matchDateTime, int gameNumber) {
@@ -34,18 +38,6 @@ public class MatchResult {
 
     public MatchResult() {
         // Default constructor for Jackson
-    }
-
-    public void setTeamAScore(int teamAScore) {
-        this.teamAScore = teamAScore;
-    }
-
-    public void setTeamBScore(int teamBScore) {
-        this.teamBScore = teamBScore;
-    }
-
-    public void setGameNumber(int gameNumber) {
-        this.gameNumber = gameNumber;
     }
 
     public void validate() {
