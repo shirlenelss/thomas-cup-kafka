@@ -61,20 +61,9 @@
    ```sh
    docker compose up -d
    ```
-3. Create the table:
-   ```sql
-   CREATE TABLE match_results (
-     id VARCHAR NOT NULL,
-     teamA VARCHAR,
-     teamB VARCHAR,
-     teamAScore INT,
-     teamBScore INT,
-     winner VARCHAR,
-     matchDateTime TIMESTAMP,
-     gameNumber INT,
-     PRIMARY KEY (id, gameNumber)
-   );
-   ```
+3. Flyway creates the table:
+    @see `src/main/resources/db/migration/V1__init_schema.sql` for the SQL script.
+
 4. Configure your `application.properties`:
    ```properties
    spring.datasource.url=jdbc:postgresql://localhost:5432/thomas_cup
@@ -83,6 +72,7 @@
    spring.datasource.driver-class-name=org.postgresql.Driver
    spring.jpa.hibernate.ddl-auto=none
    ```
+   and so on
 
 ## Notes
 - Ensure your Kafka topic `thomas-cup-matches` has multiple partitions to see consumer group/partition behavior.
