@@ -1,7 +1,6 @@
 package com.thomascup.service;
 
 import com.thomascup.model.MatchHead;
-import com.thomascup.model.MatchScores;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;

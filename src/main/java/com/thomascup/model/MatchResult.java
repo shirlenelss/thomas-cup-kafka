@@ -1,8 +1,14 @@
 package com.thomascup.model;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import lombok.Data;
 
+/**
+ * This class is now deprecated. Use MatchHead and MatchScores instead.
+ */
 @Data
+@Deprecated
 public class MatchResult {
     private String id; // Unique identifier for idempotency
     private String teamA;
@@ -10,6 +16,7 @@ public class MatchResult {
     private int teamAScore;
     private int teamBScore;
     private String winner;
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     private java.time.LocalDateTime matchDateTime;
     private int gameNumber; // 1, 2, or 3
 
@@ -25,25 +32,31 @@ public class MatchResult {
 
     }
 
+    public MatchResult() {
+        // Default constructor for Jackson
+    }
+
     public void setTeamAScore(int teamAScore) {
         this.teamAScore = teamAScore;
-        validateScore(teamAScore, this.teamBScore, this.gameNumber);
     }
 
     public void setTeamBScore(int teamBScore) {
         this.teamBScore = teamBScore;
-        validateScore(this.teamAScore, teamBScore, this.gameNumber);
     }
 
-    private void validateScore(int teamAScore, int teamBScore, int gameNumber) {
+    public void setGameNumber(int gameNumber) {
+        this.gameNumber = gameNumber;
+    }
+
+    public void validate() {
         if (!(gameNumber > 0 && gameNumber < 4)) {
             throw new IllegalArgumentException("Game number must be 1, 2, or 3 (badminton match is best of 3 games) but is " + gameNumber);
         }
         int maxPoints = (gameNumber == 3) ? 15 : 21;
-        int cap = 30;
         if (teamAScore < 0 || teamBScore < 0) {
             throw new IllegalArgumentException("Scores must be non-negative");
         }
+        int cap = 30;
         if (teamAScore > cap || teamBScore > cap) {
             throw new IllegalArgumentException("Scores must not exceed 30 (badminton rules)");
         }

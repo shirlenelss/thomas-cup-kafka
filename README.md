@@ -23,6 +23,7 @@
   - `new-game`: Inserts a new game into the PostgreSQL match_results table (with ON CONFLICT DO NOTHING).
   - `update-score`: Updates the score, winner, and matchDateTime for an existing game in the match_results table.
   - Uses PostgreSQL via Docker (see below for setup).
+  - added swagger documentation for the API endpoints.
 
 ## How to Run
 
@@ -47,8 +48,8 @@
      image: postgres:15
      environment:
        POSTGRES_DB: thomas_cup
-       POSTGRES_USER: thomas
-       POSTGRES_PASSWORD: thomas
+       POSTGRES_USER: thomas  # for now we can leave it here (fun project)
+       POSTGRES_PASSWORD: thomas # until we move to a more secure setup 
      ports:
        - "5432:5432"
      volumes:

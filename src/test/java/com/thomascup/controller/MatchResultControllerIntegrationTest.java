@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest
+@SuppressWarnings("deprecation")
 public class MatchResultControllerIntegrationTest {
     @Autowired
     private MockMvc mockMvc;

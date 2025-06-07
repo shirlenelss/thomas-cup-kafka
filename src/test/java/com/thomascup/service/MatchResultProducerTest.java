@@ -9,6 +9,10 @@ import org.springframework.kafka.core.KafkaTemplate;
 
 import static org.mockito.Mockito.verify;
 
+/**
+ * @deprecated Use {@link MatchHeadProducerTest} for testing the new MatchHead/MatchScores model.
+ */
+@Deprecated
 public class MatchResultProducerTest {
     @Mock
     private KafkaTemplate<String, MatchResult> kafkaTemplate;

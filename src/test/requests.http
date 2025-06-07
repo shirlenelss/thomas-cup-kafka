@@ -1,0 +1,13 @@
+POST http://localhost:8080/api/match-results
+Content-Type: application/json
+
+{
+  "id": "match-2",
+  "teamA": "TeamC",
+  "teamB": "TeamD",
+  "teamAScore": 0,
+  "teamBScore": 0,
+  "winner": null,
+  "matchDateTime": "2025-06-07T11:00:00",
+  "gameNumber": 1
+}

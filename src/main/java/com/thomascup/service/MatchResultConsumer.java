@@ -10,13 +10,11 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 @Service
+@Deprecated
 public class MatchResultConsumer {
     protected Logger getLogger() {
         return LoggerFactory.getLogger(MatchResultConsumer.class);
     }
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
 
     @KafkaListener(topics = "thomas-cup-matches", groupId = "group-1")
     public void listenGroup1(ConsumerRecord<String, MatchResult> record) {

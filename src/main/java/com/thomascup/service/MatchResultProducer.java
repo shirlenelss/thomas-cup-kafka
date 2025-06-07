@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
+@Deprecated // Use MatchHeadProducer instead
 public class MatchResultProducer {
     private static final String TOPIC = "thomas-cup-matches";
 
