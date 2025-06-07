@@ -1,0 +1,12 @@
+{
+  "namespace": "avro.thomasCup.match",
+  "type": "record",
+  "name": "MatchScores",
+  "fields": [
+    {"name": "gameNumber", "type": "int"},
+    {"name": "teamAScore", "type": "int"},
+    {"name": "teamBScore", "type": "int"},
+    {"name": "winner", "type": ["string", "null"]}
+  ]
+}
+
