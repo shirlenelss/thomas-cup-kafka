@@ -1,4 +1,11 @@
 # thomas-cup-kafka
+This project is a Spring Boot application (Java, Maven) focused on managing badminton match results with Kafka integration and PostgreSQL persistence. Key features include:
+Kafka Producer/Consumer: Implements idempotency, consumer groups, and partition logic for match/game events.
+Badminton Rules Enforcement: Validates scores and match structure per official rules.
+Database Integration: Uses PostgreSQL (via Docker) to store match results, with Flyway for schema migration.
+API Documentation: Swagger is enabled for REST endpoints.
+Testing: Includes unit and integration tests for business logic and Kafka flows.
+Configuration: Secrets (like DB password) are managed via a .env file for local development.
 
 ## Features & Tasks Implemented
 
@@ -27,52 +34,26 @@
 
 ## How to Run
 
-1. Build the project with Maven:
+1. Start the PostgreSQL database:
+   ```sh
+   docker compose up -d
+2. Build the project with Maven:
    ```sh
    mvn clean install
    ```
-2. Run the Spring Boot application:
+3. Run the Spring Boot application:
    ```sh
    mvn spring-boot:run
    ```
-3. Run tests:
+4. Run tests:
    ```sh
    mvn test
    ```
-
-## PostgreSQL & Docker Setup
-
-1. Add the following service to your `docker-compose.yml`:
-   ```yaml
-   postgres:
-     image: postgres:15
-     environment:
-       POSTGRES_DB: thomas_cup
-       POSTGRES_USER: thomas  # for now we can leave it here (fun project)
-       POSTGRES_PASSWORD: thomas # until we move to a more secure setup 
-     ports:
-       - "5432:5432"
-     volumes:
-       - pgdata:/var/lib/postgresql/data
-   volumes:
-     pgdata:
-   ```
-2. Start PostgreSQL:
-   ```sh
-   docker compose up -d
-   ```
-3. Flyway creates the table:
-    @see `src/main/resources/db/migration/V1__init_schema.sql` for the SQL script.
-
-4. Configure your `application.properties`:
-   ```properties
-   spring.datasource.url=jdbc:postgresql://localhost:5432/thomas_cup
-   spring.datasource.username=thomas
-   spring.datasource.password=thomas
-   spring.datasource.driver-class-name=org.postgresql.Driver
-   spring.jpa.hibernate.ddl-auto=none
-   ```
-   and so on
+The project uses Docker Compose to run a local PostgreSQL database for development. 
+The database service is defined in docker-compose.yml, specifying the image, environment variables, ports, and persistent storage. 
+Secrets like the database password are managed via a .env file (excluded from source control). 
+Flyway handles automatic schema migration, creating and updating tables on startup. 
+This setup allows easy local development and testing without manual database installation.
 
 ## Notes
 - Ensure your Kafka topic `thomas-cup-matches` has multiple partitions to see consumer group/partition behavior.
