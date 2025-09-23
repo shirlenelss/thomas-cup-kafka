@@ -18,6 +18,10 @@ public class MatchResultController {
     @Operation(summary = "Send a match result", description = "Posts a match result event to Kafka.")
     @PostMapping
     public ResponseEntity<String> sendMatchResult(@RequestBody MatchResult matchResult) {
+        // Set current timestamp if not provided
+        if (matchResult.getMatchDateTime() == null) {
+            matchResult.setMatchDateTime(java.time.LocalDateTime.now());
+        }
         matchResultProducer.sendMatchResult(matchResult);
         return ResponseEntity.ok("Match result sent to Kafka");
     }

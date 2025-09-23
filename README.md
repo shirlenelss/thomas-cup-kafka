@@ -34,22 +34,49 @@ Configuration: Secrets (like DB password) are managed via a .env file for local 
 
 ## How to Run
 
-1. Start the PostgreSQL database:
+1. Start the full stack (PostgreSQL, Kafka, monitoring):
    ```sh
    docker compose up -d
-2. Build the project with Maven:
+   ```
+
+2. Create Kafka topics:
+   ```sh
+   ./scripts/setup-kafka-topics.sh
+   ```
+
+3. Build the project with Maven:
    ```sh
    mvn clean install
    ```
-3. Run the Spring Boot application:
+
+4. Run the Spring Boot application:
    ```sh
    mvn spring-boot:run
    ```
-4. Run tests:
+
+5. Run tests:
    ```sh
    mvn test
    ```
-The project uses Docker Compose to run a local PostgreSQL database for development. 
+
+## Performance Testing with k6
+
+The project includes comprehensive k6 performance tests for load, spike, and endurance testing:
+
+```sh
+# Run performance tests (requires app to be running)
+./k6/run-tests.sh load    # Standard load test
+./k6/run-tests.sh spike   # Traffic spike test  
+./k6/run-tests.sh soak    # 30-minute endurance test
+./k6/run-tests.sh all     # Run multiple tests
+
+# Or with Docker directly
+docker compose --profile performance run --rm k6
+```
+
+See `k6/README.md` for detailed testing documentation.
+
+The project uses Docker Compose to run a local PostgreSQL database and Kafka broker for development. 
 The database service is defined in docker-compose.yml, specifying the image, environment variables, ports, and persistent storage. 
 Secrets like the database password are managed via a .env file (excluded from source control). 
 Flyway handles automatic schema migration, creating and updating tables on startup. 

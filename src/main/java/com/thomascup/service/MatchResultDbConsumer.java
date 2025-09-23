@@ -20,11 +20,12 @@ public class MatchResultDbConsumer {
     public void saveLatestToDb(ConsumerRecord<String, MatchResult> record) {
         try {
             MatchResult matchResult = record.value();
-            // Upsert logic: update if exists, else insert
-            String sql = "MERGE INTO match_results AS t USING (VALUES (?, ?, ?, ?, ?, ?, ?, ?)) AS v(id, teamA, teamB, teamAScore, teamBScore, winner, matchDateTime, gameNumber) " +
-                    "ON t.id = v.id AND t.gameNumber = v.gameNumber " +
-                    "WHEN MATCHED THEN UPDATE SET teamA = v.teamA, teamB = v.teamB, teamAScore = v.teamAScore, teamBScore = v.teamBScore, winner = v.winner, matchDateTime = v.matchDateTime " +
-                    "WHEN NOT MATCHED THEN INSERT (id, teamA, teamB, teamAScore, teamBScore, winner, matchDateTime, gameNumber) VALUES (v.id, v.teamA, v.teamB, v.teamAScore, v.teamBScore, v.winner, v.matchDateTime, v.gameNumber);";
+            // PostgreSQL UPSERT: insert if not exists, update if exists
+            String sql = "INSERT INTO match_results (id, teamA, teamB, teamAScore, teamBScore, winner, matchDateTime, gameNumber) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
+                    "ON CONFLICT (id, gameNumber) DO UPDATE SET " +
+                    "teamA = EXCLUDED.teamA, teamB = EXCLUDED.teamB, teamAScore = EXCLUDED.teamAScore, " +
+                    "teamBScore = EXCLUDED.teamBScore, winner = EXCLUDED.winner, matchDateTime = EXCLUDED.matchDateTime";
             jdbcTemplate.update(sql,
                     matchResult.getId(),
                     matchResult.getTeamA(),
@@ -32,7 +33,7 @@ public class MatchResultDbConsumer {
                     matchResult.getTeamAScore(),
                     matchResult.getTeamBScore(),
                     matchResult.getWinner(),
-                    matchResult.getMatchDateTime(),
+                    matchResult.getMatchDateTime() != null ? java.sql.Timestamp.valueOf(matchResult.getMatchDateTime()) : null,
                     matchResult.getGameNumber()
             );
         } catch (Exception e) {
@@ -54,7 +55,7 @@ public class MatchResultDbConsumer {
                 matchResult.getTeamAScore(),
                 matchResult.getTeamBScore(),
                 matchResult.getWinner(),
-                matchResult.getMatchDateTime().toLocalTime(),
+                matchResult.getMatchDateTime() != null ? java.sql.Timestamp.valueOf(matchResult.getMatchDateTime()) : null,
                 matchResult.getGameNumber()
         );
     }
