@@ -59,6 +59,9 @@ services:
       - "3001:3000"
     depends_on:
       - prometheus
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
 
   k6:
     image: grafana/k6:latest
@@ -74,4 +77,5 @@ services:
 
 volumes:
   pgdata:
+  grafana-data:
 
