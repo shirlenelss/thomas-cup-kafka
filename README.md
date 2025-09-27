@@ -59,6 +59,32 @@ Configuration: Secrets (like DB password) are managed via a .env file for local 
    mvn test
    ```
 
+## Monitoring & Dashboards
+
+The project includes comprehensive monitoring with Prometheus and Grafana:
+
+### 🏸 Grafana Dashboard
+A pre-built **Thomas Cup Badminton Championship Dashboard** is available at `badminton-championship-dashboard.json` featuring:
+- **Real-time Kafka metrics**: Consumer activity, message processing rates
+- **JVM monitoring**: Heap memory usage and performance
+- **HTTP request tracking**: API endpoint activity
+- **Badminton-themed UI**: Emojis and sport-specific styling
+
+### Setup Instructions:
+1. **Access Grafana**: http://localhost:3001 (admin/admin)
+2. **Prometheus datasource**: Auto-configured! The datasource is automatically provisioned with UID `thomas-cup-prometheus`
+3. **Import Dashboard**:
+   - Go to Dashboards → New → Import
+   - Upload `badminton-championship-dashboard.json`
+   - The dashboard should automatically use the provisioned Prometheus datasource
+   - If needed, change the UID in the JSON from `thomas-cup-prometheus` to match your datasource UID
+
+### Metrics Available:
+- `spring_kafka_listener_seconds_count` - Message processing counts
+- `spring_kafka_listener_seconds_max` - Consumer processing times  
+- `jvm_memory_used_bytes` - JVM memory consumption
+- `http_server_requests_seconds_count` - HTTP request rates
+
 ## Performance Testing with k6
 
 The project includes comprehensive k6 performance tests for load, spike, and endurance testing:
