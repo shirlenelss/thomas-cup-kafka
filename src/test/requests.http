@@ -10,4 +10,4 @@ Content-Type: application/json
   "winner": null,
   "matchDateTime": "2025-06-07T11:00:00",
   "gameNumber": 1
-}
+}http://kafka:9101/metrics

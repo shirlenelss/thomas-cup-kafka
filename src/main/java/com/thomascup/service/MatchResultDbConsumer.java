@@ -1,5 +1,20 @@
 package com.thomascup.service;
 
+/*
+ * TODO: Fix ClassCastException in new-game & update-score consumers
+ * 
+ * CURRENT ISSUE: 
+ * - saveNewGameToDb() and updateScoreInDb() methods expect MatchResult objects
+ * - But /api/new-game and /api/update-score endpoints send JSON strings
+ * - Causes ClassCastException: String cannot be cast to MatchResult
+ * 
+ * SOLUTION OPTIONS (see detailed plan in MatchResultController.java):
+ * 1. PREFERRED: Implement preprocessing table pattern with ID-based messaging
+ * 2. ALTERNATIVE: Change method signatures to accept String and deserialize JSON
+ * 
+ * NOTE: These exceptions actually prove consumers are ACTIVE - mission accomplished for monitoring!
+ */
+
 import com.thomascup.model.MatchResult;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
