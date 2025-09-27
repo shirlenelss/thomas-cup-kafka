@@ -5,3 +5,14 @@ scrape_configs:
   - job_name: 'spring-boot'
     static_configs:
       - targets: ['host.docker.internal:8080']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    
+  # Kafka JMX metrics disabled - requires JMX exporter for Prometheus format
+  # - job_name: 'kafka'
+  #   static_configs:
+  #     - targets: ['kafka:9101']
+    
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

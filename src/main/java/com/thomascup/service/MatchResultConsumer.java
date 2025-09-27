@@ -14,12 +14,12 @@ public class MatchResultConsumer {
         return LoggerFactory.getLogger(MatchResultConsumer.class);
     }
 
-    @KafkaListener(topics = "thomas-cup-matches", groupId = "group-1")
+    @KafkaListener(topics = "thomas-cup-matches", groupId = "group-1", id = "thomas-cup-logger-group1")
     public void listenGroup1(ConsumerRecord<String, MatchResult> record) {
         getLogger().info("[Group-1] Received message: {} from partition: {}", record.value(), record.partition());
     }
 
-    @KafkaListener(topics = "thomas-cup-matches", groupId = "group-2")
+    @KafkaListener(topics = "thomas-cup-matches", groupId = "group-2", id = "thomas-cup-logger-group2")
     public void listenGroup2(ConsumerRecord<String, MatchResult> record) {
         getLogger().info("[Group-2] Received message: {} from partition: {}", record.value(), record.partition());
     }

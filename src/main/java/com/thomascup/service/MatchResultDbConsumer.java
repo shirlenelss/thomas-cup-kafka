@@ -16,7 +16,7 @@ public class MatchResultDbConsumer {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @KafkaListener(topics = "thomas-cup-matches", groupId = "db-writer-group", containerFactory = "matchResultKafkaListenerContainerFactory")
+    @KafkaListener(topics = "thomas-cup-matches", groupId = "db-writer-group", containerFactory = "matchResultKafkaListenerContainerFactory", id = "thomas-cup-db-main")
     public void saveLatestToDb(ConsumerRecord<String, MatchResult> record) {
         try {
             MatchResult matchResult = record.value();
@@ -43,7 +43,7 @@ public class MatchResultDbConsumer {
         }
     }
 
-    @KafkaListener(topics = "new-game", groupId = "db-writer-group", containerFactory = "matchResultKafkaListenerContainerFactory")
+    @KafkaListener(topics = "new-game", groupId = "db-writer-group", containerFactory = "matchResultKafkaListenerContainerFactory", id = "thomas-cup-db-new-game")
     public void saveNewGameToDb(ConsumerRecord<String, MatchResult> record) {
         MatchResult matchResult = record.value();
         String sql = "INSERT INTO match_results (id, teamA, teamB, teamAScore, teamBScore, winner, matchDateTime, gameNumber) VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
@@ -60,7 +60,7 @@ public class MatchResultDbConsumer {
         );
     }
 
-    @KafkaListener(topics = "update-score", groupId = "db-writer-group")
+    @KafkaListener(topics = "update-score", groupId = "db-writer-group", id = "thomas-cup-db-update-score")
     public void updateScoreInDb(ConsumerRecord<String, MatchResult> record) {
         MatchResult matchResult = record.value();
         String sql = "UPDATE match_results SET teamAScore = ?, teamBScore = ?, winner = ?, matchDateTime = ? WHERE id = ? AND gameNumber = ?";
