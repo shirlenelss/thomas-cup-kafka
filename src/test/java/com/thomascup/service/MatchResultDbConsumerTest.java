@@ -30,7 +30,7 @@ public class MatchResultDbConsumerTest {
     @Test
     public void testSaveNewGameToDb() {
         MatchResult matchResult = new MatchResult("match-1", "TeamA", "TeamB", 0, 0, null, LocalDateTime.now(), 1);
-        ConsumerRecord<String, MatchResult> record = new ConsumerRecord<>("new-game", 0, 0L, "match-1", matchResult);
+        ConsumerRecord<String, Object> record = new ConsumerRecord<>("new-game", 0, 0L, "match-1", matchResult);
         consumer.saveNewGameToDb(record);
         ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Object> argCaptor = ArgumentCaptor.forClass(Object.class);
@@ -41,7 +41,7 @@ public class MatchResultDbConsumerTest {
     @Test
     public void testUpdateScoreInDb() {
         MatchResult matchResult = new MatchResult("match-1", "TeamA", "TeamB", 10, 8, null, LocalDateTime.now(), 1);
-        ConsumerRecord<String, MatchResult> record = new ConsumerRecord<>("update-score", 0, 0L, "match-1", matchResult);
+        ConsumerRecord<String, Object> record = new ConsumerRecord<>("update-score", 0, 0L, "match-1", matchResult);
         consumer.updateScoreInDb(record);
         ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Object> argCaptor = ArgumentCaptor.forClass(Object.class);
