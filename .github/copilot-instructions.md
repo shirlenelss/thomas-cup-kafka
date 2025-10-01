@@ -63,7 +63,12 @@ Match results use composite keys: `matchId + gameNumber`. See `MatchResultDbCons
 docker compose up -d
 ./scripts/setup-kafka-topics-with-replicas.sh
 mvn clean install
-mvn spring-boot:run
+
+# Run Spring Boot with nohup (recommended for persistent background execution)
+nohup env SPRING_DATASOURCE_PASSWORD=thomas_password_1234 mvn spring-boot:run > spring-boot.log 2>&1 &
+
+# Or simple foreground execution
+SPRING_DATASOURCE_PASSWORD=thomas_password_1234 mvn spring-boot:run
 ```
 
 ### Production Deployment
@@ -72,7 +77,10 @@ mvn spring-boot:run
 export POSTGRES_HOST="your-db-host"
 ./docker/init-db.sh
 
-# Application deployment
+# Application deployment with nohup (recommended for persistent background execution)
+nohup env SPRING_DATASOURCE_PASSWORD="secure-password" java -jar target/thomas-cup-kafka-*.jar > app.log 2>&1 &
+
+# Or simple foreground execution
 export SPRING_DATASOURCE_PASSWORD="secure-password"
 java -jar target/thomas-cup-kafka-*.jar
 ```

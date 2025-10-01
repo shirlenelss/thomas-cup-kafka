@@ -7,20 +7,26 @@ const badmintonMatchesCounter = new Counter('badminton_matches_sent');
 const kafkaErrorRate = new Rate('kafka_errors');
 const matchProcessingTime = new Trend('match_processing_duration');
 
-// Test configuration
+// Test configuration - Enhanced load test with realistic scaling
 export const options = {
   stages: [
-    { duration: '30s', target: 20 }, // Ramp up to 20 users
-    { duration: '1m', target: 20 },  // Stay at 20 users
-    { duration: '30s', target: 50 }, // Ramp up to 50 users
-    { duration: '2m', target: 50 },  // Stay at 50 users
-    { duration: '30s', target: 0 },  // Ramp down
+    { duration: '1m', target: 10 },   // Warm up
+    { duration: '2m', target: 25 },   // Normal load
+    { duration: '2m', target: 50 },   // Increased load
+    { duration: '3m', target: 75 },   // Peak load
+    { duration: '2m', target: 100 },  // Maximum sustainable load
+    { duration: '1m', target: 50 },   // Scale back
+    { duration: '1m', target: 0 },    // Cool down
   ],
   thresholds: {
-    http_req_duration: ['p(95)<500'], // 95% of requests under 500ms
+    http_req_duration: ['p(50)<200', 'p(90)<500', 'p(95)<800'], // Response time percentiles
     http_req_failed: ['rate<0.05'],   // Error rate under 5%
     kafka_errors: ['rate<0.01'],      // Kafka error rate under 1%
+    badminton_matches_sent: ['count>500'], // Minimum matches processed
+    match_processing_duration: ['p(95)<1000'], // End-to-end processing time
   },
+  // Resource monitoring
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)', 'count'],
 };
 
 // Generate realistic badminton match data
@@ -87,18 +93,22 @@ export default function () {
   };
   
   const startTime = Date.now();
-  const response = http.post('http://host.docker.internal:8080/api/match-results', payload, params);
+  const response = http.post('http://localhost:8080/api/match-results', payload, params);
   const endTime = Date.now();
   
   // Record custom metrics
   badmintonMatchesCounter.add(1);
   matchProcessingTime.add(endTime - startTime);
   
-  // Check response
+  // Enhanced response validation
   const success = check(response, {
     'status is 200': (r) => r.status === 200,
-    'response contains success message': (r) => r.body.includes('Match result sent to Kafka'),
+    'response contains success message': (r) => r.body && r.body.includes('Match result sent to Kafka'),
+    'response time < 500ms': (r) => r.timings.duration < 500,
     'response time < 1000ms': (r) => r.timings.duration < 1000,
+    'response time < 2000ms': (r) => r.timings.duration < 2000,
+    'has content-type header': (r) => r.headers['Content-Type'] !== undefined,
+    'body is not empty': (r) => r.body && r.body.length > 0,
   });
   
   if (!success) {
@@ -108,8 +118,15 @@ export default function () {
     kafkaErrorRate.add(0);
   }
   
-  // Realistic think time between requests
-  sleep(Math.random() * 2 + 0.5); // 0.5-2.5 seconds
+  // Adaptive think time based on response time (simulates user behavior)
+  let thinkTime = 1.0; // Base think time
+  if (response.timings.duration > 1000) {
+    thinkTime = 2.0; // Wait longer if server is slow
+  } else if (response.timings.duration < 200) {
+    thinkTime = 0.5; // Faster interactions with responsive server
+  }
+  
+  sleep(Math.random() * thinkTime + 0.3); // Variable think time
 }
 
 // Setup function - runs once before the test starts
@@ -118,7 +135,7 @@ export function setup() {
   console.log('Testing Thomas Cup Kafka API with realistic match scenarios');
   
   // Verify API is accessible
-  const healthCheck = http.get('http://host.docker.internal:8080/actuator/health');
+  const healthCheck = http.get('http://localhost:8080/actuator/health');
   if (healthCheck.status !== 200) {
     console.error('API health check failed - ensure Spring Boot app is running');
   }

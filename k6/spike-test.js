@@ -1,19 +1,28 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
-// Spike test configuration - sudden traffic bursts
+// Enhanced spike test - multiple traffic bursts to test system resilience
 export const options = {
   stages: [
-    { duration: '10s', target: 1 },   // Normal load
-    { duration: '10s', target: 100 }, // Spike to 100 users
-    { duration: '30s', target: 100 }, // Stay at spike level
-    { duration: '10s', target: 1 },   // Drop back to normal
-    { duration: '10s', target: 0 },   // Stop
+    { duration: '30s', target: 5 },    // Baseline
+    { duration: '15s', target: 150 },  // First spike
+    { duration: '1m', target: 150 },   // Sustained spike
+    { duration: '15s', target: 10 },   // Recovery period
+    { duration: '30s', target: 10 },   // Stable
+    { duration: '10s', target: 200 },  // Second spike (higher)
+    { duration: '45s', target: 200 },  // Peak stress
+    { duration: '30s', target: 20 },   // Gradual recovery
+    { duration: '30s', target: 0 },    // Cool down
   ],
   thresholds: {
-    http_req_duration: ['p(95)<2000'], // More lenient during spikes
-    http_req_failed: ['rate<0.1'],     // 10% error rate acceptable during spikes
+    http_req_duration: ['p(90)<3000', 'p(95)<5000'], // Lenient during stress
+    http_req_failed: ['rate<0.15'],     // 15% error rate acceptable during spikes
+    'http_req_duration{spike:first}': ['p(95)<4000'],
+    'http_req_duration{spike:second}': ['p(95)<6000'],
   },
+  // Spike test should handle higher resource usage
+  maxRedirects: 0,
+  batch: 10, // Process requests in batches during high load
 };
 
 // Generate simple match data for spike testing
@@ -36,21 +45,40 @@ function generateQuickMatch() {
 export default function () {
   const matchResult = generateQuickMatch();
   
+  // Add spike context tags for detailed analysis
+  const currentVU = __VU;
+  const currentIter = __ITER;
+  const spikePhase = currentVU > 100 ? 'second' : 'first';
+  
   const response = http.post(
     'http://host.docker.internal:8080/api/match-results',
     JSON.stringify(matchResult),
     {
       headers: { 'Content-Type': 'application/json' },
+      tags: { spike: spikePhase },
     }
   );
   
-  check(response, {
-    'spike test - status is 2xx': (r) => r.status >= 200 && r.status < 300,
-    'spike test - response time < 5s': (r) => r.timings.duration < 5000,
-  });
+  const checks = check(response, {
+    'spike - status is 2xx': (r) => r.status >= 200 && r.status < 300,
+    'spike - not server error': (r) => r.status < 500,
+    'spike - response within 10s': (r) => r.timings.duration < 10000,
+    'spike - response within 5s': (r) => r.timings.duration < 5000,
+    'spike - response within 2s': (r) => r.timings.duration < 2000,
+    'spike - has response body': (r) => r.body && r.body.length > 0,
+  }, { spike: spikePhase });
   
-  // Minimal sleep during spike test
-  sleep(0.1);
+  // Log failures during stress periods
+  if (!checks['spike - status is 2xx'] || !checks['spike - response within 10s']) {
+    console.warn(`Spike ${spikePhase} - VU${currentVU} Iter${currentIter}: ${response.status} in ${response.timings.duration}ms`);
+  }
+  
+  // Aggressive load during spike phases
+  if (currentVU > 50) {
+    sleep(0.05); // Very minimal delay during high load
+  } else {
+    sleep(0.2);  // Slightly longer during normal periods
+  }
 }
 
 export function setup() {

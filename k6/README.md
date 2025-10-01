@@ -4,27 +4,45 @@ This directory contains k6 performance tests for the Thomas Cup Kafka applicatio
 
 ## Test Scripts
 
-### 1. `load-test.js` - Standard Load Test
-- **Purpose**: General performance testing with realistic badminton match data
-- **Load Pattern**: Gradual ramp-up to 50 concurrent users
+### 1. `load-test.js` - Enhanced Load Test
+- **Purpose**: Comprehensive load testing with realistic scaling patterns
+- **Load Pattern**: Multi-stage ramp from 10→25→50→75→100 users
+- **Duration**: ~12 minutes
+- **Features**:
+  - Advanced badminton match simulation with tournament context
+  - Adaptive think time based on server response
+  - Detailed performance percentiles (p50, p90, p95, p99)
+  - Enhanced response validation and error reporting
+
+### 2. `spike-test.js` - Multi-Phase Spike Test  
+- **Purpose**: Test system resilience under multiple traffic spikes
+- **Load Pattern**: Baseline→150 users→Recovery→200 users→Recovery
 - **Duration**: ~4 minutes
 - **Features**:
-  - Realistic badminton scoring (21 points for games 1&2, 15 for game 3)
-  - Proper deuce handling (scores can go up to 30)
-  - Custom metrics for Kafka processing
-  - Match result validation
+  - Two different spike intensities to test breaking points
+  - Phase-specific performance thresholds
+  - Detailed spike recovery analysis
+  - Batch request processing during high load
 
-### 2. `spike-test.js` - Traffic Spike Test  
-- **Purpose**: Test system behavior under sudden traffic bursts
-- **Load Pattern**: Spike from 1 to 100 users instantly
-- **Duration**: ~1 minute
-- **Use Case**: Simulates viral tournament moments or system stress
+### 3. `soak-test.js` - Extended Endurance Test
+- **Purpose**: Long-term stability with varying load patterns
+- **Load Pattern**: 5→15→25 users with sustained periods
+- **Duration**: ~60 minutes
+- **Features**:
+  - Periodic health checks every 100 iterations  
+  - Phase-aware performance tracking
+  - Memory leak detection through sustained load
+  - Performance degradation monitoring
 
-### 3. `soak-test.js` - Endurance Test
-- **Purpose**: Long-term stability testing
-- **Load Pattern**: Sustained 10 users for 30 minutes  
-- **Duration**: 40 minutes total
-- **Use Case**: Detect memory leaks and performance degradation
+### 4. `comprehensive-test.js` - Complete Performance Suite
+- **Purpose**: All-in-one test combining load, spike, and endurance aspects
+- **Load Pattern**: Warmup→Ramp→Sustained→Spike→Endurance→Final Spike→Cooldown
+- **Duration**: ~26 minutes
+- **Features**:
+  - Tournament simulation with 18 countries and 6 tournament types
+  - Match type variety (decisive, close, deuce scenarios)
+  - Phase-specific behavior and thresholds
+  - Comprehensive metrics including game distribution and response sizes
 
 ## Running Tests
 
@@ -37,19 +55,26 @@ This directory contains k6 performance tests for the Thomas Cup Kafka applicatio
 
 2. Ensure the API is accessible at `http://localhost:8080`
 
-### Run with Docker (Recommended)
+### Run with Scripts (Recommended)
 ```bash
-# Standard load test
-docker compose --profile performance run --rm k6
+# Use the convenient test runner
+./k6/run-tests.sh load           # Enhanced load test (12 min)
+./k6/run-tests.sh spike          # Multi-phase spike test (4 min)  
+./k6/run-tests.sh soak           # Extended endurance test (60 min)
+./k6/run-tests.sh comprehensive  # Complete test suite (26 min)
+./k6/run-tests.sh all           # Sequential: load + spike + comprehensive
 
-# Spike test
+# Or use dev.sh wrapper
+./scripts/dev.sh k6             # Runs load test by default
+```
+
+### Run with Docker Directly
+```bash
+# Individual tests
+docker compose --profile performance run --rm k6 run /scripts/load-test.js
 docker compose --profile performance run --rm k6 run /scripts/spike-test.js
-
-# Soak test (30 minutes)
 docker compose --profile performance run --rm k6 run /scripts/soak-test.js
-
-# Custom parameters
-docker compose --profile performance run --rm k6 run -e USERS=20 -e DURATION=2m /scripts/load-test.js
+docker compose --profile performance run --rm k6 run /scripts/comprehensive-test.js
 ```
 
 ### Run with Local k6
@@ -81,16 +106,21 @@ The tests generate realistic badminton match data:
 ## Key Metrics to Watch
 
 ### K6 Metrics
-- `http_req_duration`: Response times (target: p95 < 500ms)
-- `http_req_failed`: Error rate (target: < 5%)
-- `badminton_matches_sent`: Custom counter for sent matches
-- `kafka_errors`: Custom metric for Kafka-specific failures
+- `http_req_duration`: Response times (target: p50<250ms, p95<1000ms)
+- `http_req_failed`: Error rate (target: < 2%)  
+- `badminton_matches_sent`: Total matches processed
+- `kafka_errors`: Kafka-specific failure rate
+- `match_processing_duration`: End-to-end processing time
+- `api_response_size_bytes`: Response payload efficiency
+- `games_by_number`: Distribution of games 1, 2, and 3
+- `concurrent_users`: Active user gauge
 
 ### Application Metrics  
-- Kafka consumer lag
-- Database connection pool usage
-- JVM memory/GC metrics
-- HTTP request throughput
+- Kafka consumer lag and throughput
+- Database connection pool usage and query performance
+- JVM memory, GC metrics, and heap usage
+- HTTP request rates and error distributions
+- Multi-broker Kafka cluster health (3 brokers)
 
 ## Interpreting Results
 

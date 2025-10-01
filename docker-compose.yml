@@ -90,6 +90,7 @@ services:
   
   prometheus:
     image: prom/prometheus:latest
+    container_name: prometheus
     ports:
       - "9090:9090"
     volumes:
@@ -103,27 +104,46 @@ services:
 
   grafana:
     image: grafana/grafana:latest
+    container_name: grafana
     ports:
       - "3001:3000"
     depends_on:
       prometheus:
         condition: service_healthy
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
 
   k6:
     image: grafana/k6:latest
     profiles:
       - performance
+    network_mode: host
     volumes:
       - ./k6:/scripts
-    command: run /scripts/load-test.js
+    command: run --out experimental-prometheus-rw /scripts/load-test.js
+    environment:
+      - K6_PROMETHEUS_RW_SERVER_URL=http://localhost:9090/api/v1/write
     depends_on:
       - postgres
       - prometheus
       - kafka1
       - kafka2
+      - kafka3
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "9001:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: thomas-cup-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka1:29092,kafka2:29093,kafka3:29094
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    depends_on:
+      - kafka1
+      - kafka2  
       - kafka3
 
 volumes:

@@ -81,7 +81,7 @@ For faster development, use the convenience script:
 # Test the API
 ./scripts/dev.sh test-api
 
-# Performance testing
+# Performance testing (multiple test types available)
 ./scripts/dev.sh k6
 ```
 

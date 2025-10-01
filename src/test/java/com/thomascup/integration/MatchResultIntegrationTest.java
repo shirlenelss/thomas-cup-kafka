@@ -36,7 +36,8 @@ import static org.awaitility.Awaitility.await;
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
-        "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}"
+        "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}",
+        "spring.profiles.active=test"
     }
 )
 @EmbeddedKafka(partitions = 1, topics = {"thomas-cup-matches"})

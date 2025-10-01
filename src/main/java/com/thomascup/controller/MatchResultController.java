@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
+import java.util.UUID;
 
 @Tag(name = "Match Results", description = "Endpoints for posting match results to Kafka")
 @RestController
@@ -22,6 +23,10 @@ public class MatchResultController {
     @Operation(summary = "Send a match result", description = "Posts a match result event to Kafka.")
     @PostMapping("/match-results")
     public ResponseEntity<String> sendMatchResult(@RequestBody MatchResult matchResult) {
+        // Generate ID if not provided
+        if (matchResult.getId() == null || matchResult.getId().trim().isEmpty()) {
+            matchResult.setId(UUID.randomUUID().toString());
+        }
         // Set current timestamp if not provided
         if (matchResult.getMatchDateTime() == null) {
             matchResult.setMatchDateTime(java.time.LocalDateTime.now());
@@ -33,6 +38,10 @@ public class MatchResultController {
     @Operation(summary = "Start a new game", description = "Posts a new game event to the new-game topic.")
     @PostMapping("/new-game")
     public ResponseEntity<String> startNewGame(@RequestBody MatchResult matchResult) {
+        // Generate ID if not provided
+        if (matchResult.getId() == null || matchResult.getId().trim().isEmpty()) {
+            matchResult.setId(UUID.randomUUID().toString());
+        }
         // Set current timestamp if not provided  
         if (matchResult.getMatchDateTime() == null) {
             matchResult.setMatchDateTime(java.time.LocalDateTime.now());
@@ -44,6 +53,10 @@ public class MatchResultController {
     @Operation(summary = "Update match score", description = "Posts a score update event to the update-score topic.")
     @PostMapping("/update-score")
     public ResponseEntity<String> updateScore(@RequestBody MatchResult matchResult) {
+        // Generate ID if not provided (required for updates to identify the record)
+        if (matchResult.getId() == null || matchResult.getId().trim().isEmpty()) {
+            matchResult.setId(UUID.randomUUID().toString());
+        }
         // Set current timestamp if not provided
         if (matchResult.getMatchDateTime() == null) {
             matchResult.setMatchDateTime(java.time.LocalDateTime.now());
