@@ -1,7 +1,35 @@
 # Thomas Cup Kafka - AI Agent Instructions
 
 ## Architecture Overview
-This is a Spring Boot 3.x application implementing badminton match result processing via Kafka with PostgreSQL persistence. The system follows an event-driven architecture with separate producers/consumers for different data flows.
+This is a Spring ### Common Development Tasks
+
+### Development Workflow
+Use `./scripts/dev.sh <command>` for all common tasks:
+- `start/stop/restart` - Docker services management
+- `build/run/test` - Application lifecycle  
+- `test-api` - API endpoint testing
+- `k6` - Performance testing
+- `status` - System health check
+
+### Adding New Kafka Topics
+1. Update `./scripts/setup-kafka-topics-with-replicas.sh` with new topic
+2. Add consumer with `@KafkaListener(topics = "new-topic")`
+3. Add topic to integration tests' `@EmbeddedKafka(topics = {...})`
+
+### Database Schema Changes
+1. Create new Flyway migration: `V{number}__{description}.sql`
+2. Use composite keys: `PRIMARY KEY (match_id, game_number)`
+3. Test with `./scripts/dev.sh restart` to apply migrations
+
+### External Database Setup
+1. Use `./docker/init-db.sh` for cloud deployments (AWS RDS, Azure)
+2. See `./docker/setup-external-db-example.sh` for usage examples
+3. Flyway handles schema creation automatically
+
+### Performance Testing
+1. Run `./scripts/dev.sh k6` for quick load tests
+2. Use `./k6/run-tests.sh [load|spike|soak]` for detailed testing
+3. Monitor via Grafana dashboard during tests implementing badminton match result processing via Kafka with PostgreSQL persistence. The system follows an event-driven architecture with separate producers/consumers for different data flows.
 
 ### Core Domain Model
 - **MatchResult**: Legacy model (deprecated) for single game results
@@ -26,17 +54,27 @@ Match results use composite keys: `matchId + gameNumber`. See `MatchResultDbCons
 
 ### Environment Setup
 ```bash
-# Start PostgreSQL + Kafka + monitoring stack
+# Quick start with convenience script
+./scripts/dev.sh start    # Starts Docker + creates topics
+./scripts/dev.sh build    # Maven build
+./scripts/dev.sh run      # Runs application
+
+# Or manual setup:
 docker compose up -d
-
-# Create required Kafka topics
-./scripts/setup-kafka-topics.sh
-
-# Build with Avro schema generation
+./scripts/setup-kafka-topics-with-replicas.sh
 mvn clean install
-
-# Run application
 mvn spring-boot:run
+```
+
+### Production Deployment
+```bash
+# External database setup (AWS RDS, Azure Database, etc.)
+export POSTGRES_HOST="your-db-host"
+./docker/init-db.sh
+
+# Application deployment
+export SPRING_DATASOURCE_PASSWORD="secure-password"
+java -jar target/thomas-cup-kafka-*.jar
 ```
 
 ### Database Patterns
@@ -68,6 +106,11 @@ Swagger/OpenAPI enabled automatically at `/swagger-ui.html` via `springdoc-opena
 - **Test Types**: Load tests, spike tests (traffic bursts), and soak tests (30min endurance)
 - **Docker Profile**: Use `docker compose --profile performance` for k6 tests
 - **Custom Metrics**: Tracks badminton-specific metrics (matches sent, Kafka errors)
+
+### Multi-Broker Production Setup
+- **3-Broker Cluster**: kafka1:9092, kafka2:9093, kafka3:9094 with replication factor 3
+- **Fault Tolerance**: Min ISR 2, automatic leader election, partition distribution
+- **ZooKeeper Coordination**: Single ZooKeeper instance at port 2181
 
 ## Common Development Tasks
 

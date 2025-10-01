@@ -1,3 +1,7 @@
+-- Thomas Cup Kafka - Initial Schema Creation
+-- This migration assumes database and user already exist
+-- For production deployments, ensure thomas_cup_dev database and thomas_cup_user exist first
+
 CREATE TABLE match_results (
    id VARCHAR NOT NULL,
    teamA VARCHAR,

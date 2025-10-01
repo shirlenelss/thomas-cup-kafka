@@ -1,36 +1,43 @@
-# thomas-cup-kafka
-This project is a Spring Boot application (Java, Maven) focused on managing badminton match results with Kafka integration and PostgreSQL persistence. Key features include:
-Kafka Producer/Consumer: Implements idempotency, consumer groups, and partition logic for match/game events.
-Badminton Rules Enforcement: Validates scores and match structure per official rules.
-Database Integration: Uses PostgreSQL (via Docker) to store match results, with Flyway for schema migration.
-API Documentation: Swagger is enabled for REST endpoints.
-Testing: Includes unit and integration tests for business logic and Kafka flows.
-Configuration: Secrets (like DB password) are managed via a .env file for local development.
+# Thomas Cup Kafka 🏸
 
-## Features & Tasks Implemented
+A **production-ready Spring Boot application** for managing badminton match results with enterprise-grade Kafka integration and PostgreSQL persistence.
 
-- **.gitignore**: Added a suitable .gitignore for a Spring Java Maven project, ignoring IDE files, build output, logs, and OS-specific files.
-- **Cleanup**: Removed previously committed files that are now ignored (e.g., .idea/, target/), and committed these changes.
-- **Idempotency**: Implemented idempotency in the Kafka producer using a combination of match id and game number, ensuring each game in a match is tracked and updated independently.
-- **Consumer Groups & Partitions**: Added a Kafka consumer with multiple consumer groups to demonstrate how messages are distributed across groups and partitions.
-- **Badminton Rules Enforcement**: 
-  - Scores must be between 0 and 30.
-  - A match consists of the best of 3 games.
-  - Games 1 and 2 are played to 21 points (cap at 30).
-  - Game 3 is played to 15 points (cap at 30).
-  - Each game starts at 0-0.
-- **Validation**: Added validation logic in the MatchResult model to enforce the above badminton rules.
-- **Tests**: Updated and added tests to:
-  - Cover idempotency logic (including match id and game number).
-  - Ensure correct logging for consumer groups and partitions.
-  - Validate badminton scoring rules.
-- **Jackson Compatibility**: Ensured the MatchResult model is compatible with JSON serialization/deserialization for Spring controllers.
-- **Git Operations**: Committed and pushed all changes to the remote repository.
-- **Database Consumer**: Added a dedicated consumer (MatchResultDbConsumer) that listens to two separate Kafka topics:
-  - `new-game`: Inserts a new game into the PostgreSQL match_results table (with ON CONFLICT DO NOTHING).
-  - `update-score`: Updates the score, winner, and matchDateTime for an existing game in the match_results table.
-  - Uses PostgreSQL via Docker (see below for setup).
-  - added swagger documentation for the API endpoints.
+## 🎯 **Key Features**
+
+- **🔄 Multi-Broker Kafka**: 3-broker cluster with replication factor 3 for fault tolerance
+- **⚡ Event-Driven Architecture**: Idempotent producers/consumers with partition logic  
+- **🏸 Badminton Rules Engine**: Official scoring validation (21/21/15 point system)
+- **🗄️ Database Integration**: PostgreSQL with Flyway migrations and automatic setup
+- **📊 Production Monitoring**: Prometheus metrics + Grafana dashboards
+- **🧪 Comprehensive Testing**: Unit, integration, and k6 performance tests
+- **🚀 Easy Deployment**: Automated scripts for local and cloud deployments
+- **📚 API Documentation**: OpenAPI/Swagger integration
+
+## 🏗️ **Architecture Overview**
+
+### **Multi-Broker Kafka Cluster**
+- **3 Kafka Brokers**: `kafka1:9092`, `kafka2:9093`, `kafka3:9094`
+- **Replication Factor**: 3 with minimum in-sync replicas of 2
+- **ZooKeeper Coordination**: Single instance managing cluster state
+- **Fault Tolerance**: Automatic leader election and partition distribution
+
+### **Event-Driven Data Flow**
+- **`thomas-cup-matches`**: Main event stream for match processing
+- **`new-game`**: Database inserts with conflict resolution (`ON CONFLICT DO NOTHING`)
+- **`update-score`**: Database updates for existing game records
+- **Consumer Groups**: Multiple processing pipelines with partition distribution
+
+### **Database Strategy**
+- **PostgreSQL 15**: Persistent storage with composite primary keys
+- **Flyway Migrations**: Automated schema management and versioning
+- **Idempotency**: `(matchId, gameNumber)` prevents duplicate game entries
+- **Auto-Setup**: Database/user creation for both local and cloud deployments
+
+### **Badminton Business Rules**
+- **Match Structure**: Best of 3 games with official scoring
+- **Game 1 & 2**: Play to 21 points (capped at 30)
+- **Game 3**: Play to 15 points (capped at 30)
+- **Score Validation**: 0-30 range enforcement in model setters
 
 ## How to Run
 
@@ -41,7 +48,7 @@ Configuration: Secrets (like DB password) are managed via a .env file for local 
 
 2. Create Kafka topics:
    ```sh
-   ./scripts/setup-kafka-topics.sh
+   ./scripts/setup-kafka-topics-with-replicas.sh
    ```
 
 3. Build the project with Maven:
@@ -58,6 +65,60 @@ Configuration: Secrets (like DB password) are managed via a .env file for local 
    ```sh
    mvn test
    ```
+
+## 🚀 Quick Development Workflow
+
+For faster development, use the convenience script:
+
+```sh
+# Quick start - starts all services and sets up topics
+./scripts/dev.sh start
+
+# Build and run the application  
+./scripts/dev.sh build
+./scripts/dev.sh run
+
+# Test the API
+./scripts/dev.sh test-api
+
+# Performance testing
+./scripts/dev.sh k6
+```
+
+See [`scripts/README.md`](scripts/README.md) for all available commands and detailed documentation.
+
+## 🚀 **Production Deployment**
+
+### **Cloud Database Setup**
+For AWS RDS, Azure Database, or other external PostgreSQL:
+
+```bash
+# 1. Configure database connection
+export POSTGRES_HOST="your-db-endpoint.com"
+export POSTGRES_ADMIN_USER="postgres"
+export POSTGRES_ADMIN_PASSWORD="admin-password"
+export DB_PASSWORD="secure-app-password"
+
+# 2. Create database and user
+./docker/init-db.sh
+
+# 3. Update application configuration
+export SPRING_DATASOURCE_PASSWORD="secure-app-password"
+# Update spring.datasource.url in application.properties
+
+# 4. Deploy application - Flyway creates tables automatically
+java -jar target/thomas-cup-kafka-*.jar
+```
+
+### **Environment Configuration**
+```properties
+# Production application.properties
+spring.datasource.url=jdbc:postgresql://your-host:5432/thomas_cup_dev
+spring.kafka.bootstrap-servers=kafka1:9092,kafka2:9092,kafka3:9092
+management.endpoints.web.exposure.include=health,metrics,prometheus
+```
+
+See [`docker/setup-external-db-example.sh`](docker/setup-external-db-example.sh) for cloud-specific examples.
 
 ## Monitoring & Dashboards
 
@@ -101,6 +162,21 @@ docker compose --profile performance run --rm k6
 ```
 
 See `k6/README.md` for detailed testing documentation.
+
+## 🏸 Scripts & Automation
+
+The project includes essential scripts for Kafka setup and badminton match simulation:
+
+```sh
+# Setup 3-broker Kafka cluster with replication
+./scripts/setup-kafka-topics-with-replicas.sh
+
+# Realistic badminton match simulation  
+./scripts/simulate-badminton-match.sh
+
+# Comprehensive system test (all topics/endpoints)
+./scripts/full-system-demo.sh
+```
 
 The project uses Docker Compose to run a local PostgreSQL database and Kafka broker for development. 
 The database service is defined in docker-compose.yml, specifying the image, environment variables, ports, and persistent storage. 

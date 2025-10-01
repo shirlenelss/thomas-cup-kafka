@@ -12,7 +12,7 @@ case "${1:-help}" in
         docker compose up -d
         echo "⏳ Waiting for services to be ready..."
         sleep 15
-        ./scripts/setup-kafka-topics.sh
+        ./setup-kafka-topics-with-replicas.sh
         echo "✅ Infrastructure ready! Now run: mvn spring-boot:run"
         ;;
     
@@ -27,7 +27,7 @@ case "${1:-help}" in
         docker compose down
         docker compose up -d
         sleep 15
-        ./scripts/setup-kafka-topics.sh
+        ./setup-kafka-topics-with-replicas.sh
         echo "✅ Services restarted"
         ;;
     
@@ -65,7 +65,7 @@ case "${1:-help}" in
     
     "k6")
         echo "⚡ Running k6 load test..."
-        ./k6/run-tests.sh load
+        ../k6/run-tests.sh load
         ;;
     
     "logs")

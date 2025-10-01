@@ -26,6 +26,16 @@ public class KafkaProducerConfig {
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        
+        // Production-ready settings
+        configProps.put(ProducerConfig.ACKS_CONFIG, "all"); // Wait for all replicas
+        configProps.put(ProducerConfig.RETRIES_CONFIG, 3); // Retry on failure
+        configProps.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384); // Batch size for performance
+        configProps.put(ProducerConfig.LINGER_MS_CONFIG, 10); // Wait 10ms to batch messages
+        configProps.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 33554432); // 32MB buffer
+        configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true); // Prevent duplicates
+        configProps.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5); // Performance tuning
+        
         return new DefaultKafkaProducerFactory<>(configProps);
     }
 
@@ -41,6 +51,16 @@ public class KafkaProducerConfig {
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        
+        // Production-ready settings
+        configProps.put(ProducerConfig.ACKS_CONFIG, "all"); // Wait for all replicas
+        configProps.put(ProducerConfig.RETRIES_CONFIG, 3); // Retry on failure
+        configProps.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384); // Batch size for performance
+        configProps.put(ProducerConfig.LINGER_MS_CONFIG, 10); // Wait 10ms to batch messages
+        configProps.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 33554432); // 32MB buffer
+        configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true); // Prevent duplicates
+        configProps.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5); // Performance tuning
+        
         return new DefaultKafkaProducerFactory<>(configProps);
     }
 
