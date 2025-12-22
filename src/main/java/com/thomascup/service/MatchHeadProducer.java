@@ -19,7 +19,7 @@ public class MatchHeadProducer {
     private final Map<String, MatchHead> latestHeads = new ConcurrentHashMap<>();
 
     public void sendMatchHead(MatchHead matchHead) {
-        // Use id as key
+        // Use id as key to guarantee per-id ordering and partition affinity
         String key = matchHead.getId();
         MatchHead last = latestHeads.get(key);
         boolean shouldSend = false;
@@ -31,9 +31,9 @@ public class MatchHeadProducer {
                 !matchHead.getScores().equals(last.getScores());
         }
         if (shouldSend) {
-            kafkaTemplate.send(TOPIC, matchHead);
+            // Keyed send: ensures all records for the same matchId go to the same partition
+            kafkaTemplate.send(TOPIC, key, matchHead);
             latestHeads.put(key, matchHead);
         }
     }
 }
-
