@@ -37,15 +37,23 @@ public class MatchScores {
             throw new IllegalArgumentException("Game number must be 1, 2, or 3 (badminton match is best of 3 games) but is " + gameNumber);
         }
         int maxPoints = (gameNumber == 3) ? 15 : 21;
+        int cap = 30;
+
         if (teamAScore < 0 || teamBScore < 0) {
             throw new IllegalArgumentException("Scores must be non-negative");
         }
-        int cap = 30;
         if (teamAScore > cap || teamBScore > cap) {
             throw new IllegalArgumentException("Scores must not exceed 30 (badminton rules)");
         }
-        if ((teamAScore > maxPoints && teamAScore < cap) || (teamBScore > maxPoints && teamBScore < cap)) {
-            throw new IllegalArgumentException("Scores must not exceed " + maxPoints + " unless deuce up to 30");
+
+        // Allow intermediate deuce states beyond maxPoints only if both sides are in deuce range
+        if (teamAScore > maxPoints || teamBScore > maxPoints) {
+            int deuceThreshold = maxPoints - 1; // 20 for games 1&2, 14 for game 3
+            if (teamAScore < deuceThreshold || teamBScore < deuceThreshold) {
+                throw new IllegalArgumentException(
+                    "Scores may exceed " + maxPoints + " only when both sides are at least " + deuceThreshold + " (deuce up to 30)"
+                );
+            }
         }
     }
 }

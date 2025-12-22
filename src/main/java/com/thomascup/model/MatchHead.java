@@ -1,10 +1,8 @@
 package com.thomascup.model;
 
-import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Data
 public class MatchHead {
     private String id; // Unique identifier for idempotency
     private String teamA;
@@ -19,5 +17,9 @@ public class MatchHead {
         this.matchDateTime = matchDateTime;
         this.scores = scores;
     }
-}
 
+    // Explicit getters
+    public String getId() { return id; }
+    public LocalDateTime getMatchDateTime() { return matchDateTime; }
+    public List<MatchScores> getScores() { return scores; }
+}

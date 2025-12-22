@@ -119,18 +119,24 @@ services:
     image: grafana/k6:latest
     profiles:
       - performance
-    network_mode: host
     volumes:
       - ./k6:/scripts
-    command: run --out experimental-prometheus-rw /scripts/load-test.js
     environment:
-      - K6_PROMETHEUS_RW_SERVER_URL=http://localhost:9090/api/v1/write
+      - K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9090/api/v1/write
+      - BASE_URL=http://host.docker.internal:8080
+    # Wait for the Spring app on host to be ready before starting k6
+    command: sh -c 'until (curl -sSf "$$BASE_URL/actuator/health" || curl -sSf "$$BASE_URL"); do echo "waiting for app at $$BASE_URL"; sleep 2; done; k6 run --out experimental-prometheus-rw /scripts/load-test.js'
     depends_on:
-      - postgres
-      - prometheus
-      - kafka1
-      - kafka2
-      - kafka3
+      postgres:
+        condition: service_healthy
+      prometheus:
+        condition: service_healthy
+      kafka1:
+        condition: service_started
+      kafka2:
+        condition: service_started
+      kafka3:
+        condition: service_started
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -149,4 +155,3 @@ services:
 volumes:
   pgdata:
   grafana-data:
-

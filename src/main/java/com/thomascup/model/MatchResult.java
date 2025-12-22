@@ -9,7 +9,6 @@ import lombok.Setter;
  * This class is now deprecated. Use MatchHead and MatchScores instead.
  */
 @Data
-@Deprecated
 public class MatchResult {
     private String id; // Unique identifier for idempotency
     private String teamA;
@@ -38,6 +37,12 @@ public class MatchResult {
         // Default constructor for Jackson
     }
 
+    // Explicit getters/setters to avoid relying solely on Lombok for these
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+
+    public java.time.LocalDateTime getMatchDateTime() { return matchDateTime; }
+    public void setMatchDateTime(java.time.LocalDateTime matchDateTime) { this.matchDateTime = matchDateTime; }
     public MatchResult validateGameNumber(int gameNumber) {
         // Validate that gameNumber is 1, 2, or 3
         if (!(gameNumber > 0 && gameNumber < 4)) {
@@ -73,4 +78,12 @@ public class MatchResult {
         validate();
         return this;
     }
+
+    // Explicit getters for fields used in services
+    public String getTeamA() { return teamA; }
+    public String getTeamB() { return teamB; }
+    public int getTeamAScore() { return teamAScore; }
+    public int getTeamBScore() { return teamBScore; }
+    public String getWinner() { return winner; }
+    public int getGameNumber() { return gameNumber; }
 }

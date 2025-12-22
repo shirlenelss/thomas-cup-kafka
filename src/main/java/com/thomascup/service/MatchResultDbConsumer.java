@@ -61,16 +61,19 @@ public class MatchResultDbConsumer {
         );
     }
 
-    @KafkaListener(topics = "update-score", groupId = "db-writer-group", id = "thomas-cup-db-update-score")
+    @KafkaListener(topics = "update-score", groupId = "db-writer-group", containerFactory = "matchResultKafkaListenerContainerFactory", id = "thomas-cup-db-update-score")
     public void updateScoreInDb(ConsumerRecord<String, Object> record) {
         MatchResult matchResult = extractMatchResult(record.value());
-        String sql = "UPDATE match_results SET teamAScore = ?, teamBScore = ?, winner = ?, matchDateTime = ? WHERE id = ? AND gameNumber = ?";
+        String sql = "INSERT INTO match_results (id, teamA, teamB, teamAScore, teamBScore, winner, matchDateTime, gameNumber) VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
+                "ON CONFLICT (id, gameNumber) DO UPDATE SET teamAScore = EXCLUDED.teamAScore, teamBScore = EXCLUDED.teamBScore, winner = EXCLUDED.winner, matchDateTime = EXCLUDED.matchDateTime";
         jdbcTemplate.update(sql,
+                matchResult.getId(),
+                matchResult.getTeamA(),
+                matchResult.getTeamB(),
                 matchResult.getTeamAScore(),
                 matchResult.getTeamBScore(),
                 matchResult.getWinner(),
-                matchResult.getMatchDateTime(),
-                matchResult.getId(),
+                matchResult.getMatchDateTime() != null ? java.sql.Timestamp.valueOf(matchResult.getMatchDateTime()) : null,
                 matchResult.getGameNumber()
         );
     }

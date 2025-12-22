@@ -32,7 +32,7 @@ public class MatchResultProducer {
                 matchResult.getTeamBScore() != last.getTeamBScore();
         }
         if (shouldSend) {
-            kafkaTemplate.send(TOPIC, matchResult);
+            kafkaTemplate.send(TOPIC, key, matchResult);
             latestResults.put(key, matchResult);
         }
     }

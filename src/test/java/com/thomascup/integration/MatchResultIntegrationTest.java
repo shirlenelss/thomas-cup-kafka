@@ -2,7 +2,6 @@ package com.thomascup.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thomascup.model.MatchResult;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -11,6 +10,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -32,7 +33,6 @@ import java.util.Properties;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-@Slf4j
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
@@ -42,6 +42,7 @@ import static org.awaitility.Awaitility.await;
 )
 @EmbeddedKafka(partitions = 1, topics = {"thomas-cup-matches"})
 public class MatchResultIntegrationTest {
+    private static final Logger log = LoggerFactory.getLogger(MatchResultIntegrationTest.class);
     @LocalServerPort
     private int port;
 

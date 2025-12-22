@@ -7,6 +7,11 @@ const badmintonMatchesCounter = new Counter('badminton_matches_sent');
 const kafkaErrorRate = new Rate('kafka_errors');
 const matchProcessingTime = new Trend('match_processing_duration');
 
+// Base URL (configurable). When running k6 in Docker on macOS/Windows, use host.docker.internal
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
+// Simulation mode to print payloads instead of sending HTTP
+const SIMULATE = (__ENV.SIMULATE === '1') || (__ENV.DRY_RUN === '1');
+
 // Test configuration - Enhanced load test with realistic scaling
 export const options = {
   stages: [
@@ -82,64 +87,174 @@ function generateMatchResult() {
   };
 }
 
-export default function () {
-  const matchResult = generateMatchResult();
-  
-  const payload = JSON.stringify(matchResult);
-  const params = {
-    headers: {
-      'Content-Type': 'application/json',
-    },
+// Helper: create a new-game payload from a final result (same id/teams/gameNumber, zeroed scores, no winner)
+function deriveNewGame(final) {
+  return {
+    id: final.id,
+    teamA: final.teamA,
+    teamB: final.teamB,
+    teamAScore: 0,
+    teamBScore: 0,
+    winner: '',
+    matchDateTime: final.matchDateTime,
+    gameNumber: final.gameNumber,
   };
-  
+}
+
+// Generate a valid badminton game score sequence under official rules
+function simulateGameSequence(gameNumber) {
+  const maxPoints = gameNumber === 3 ? 15 : 21;
+  const cap = 30;
+  let a = 0, b = 0;
+  const sequence = [{ a, b }]; // include starting 0-0 for clarity
+
+  // Random bias per game to avoid symmetric flip-flop
+  const bias = 0.5 + (Math.random() - 0.5) * 0.2; // 0.4..0.6
+
+  while (true) {
+    // Choose rally winner
+    if (Math.random() < bias) a++; else b++;
+
+    // Push the new score snapshot
+    sequence.push({ a, b });
+
+    // Check terminal conditions
+    const reachedBase = (a >= maxPoints || b >= maxPoints) && Math.abs(a - b) >= 2;
+    const reachedCap = a === cap || b === cap;
+    if (reachedBase || reachedCap) {
+      return sequence;
+    }
+  }
+}
+
+function pickTeams() {
+  const teams = ['TeamA', 'TeamB', 'TeamC', 'TeamD', 'Malaysia', 'Indonesia', 'China', 'Japan'];
+  const teamA = teams[Math.floor(Math.random() * teams.length)];
+  let teamB = teams[Math.floor(Math.random() * teams.length)];
+  while (teamB === teamA) teamB = teams[Math.floor(Math.random() * teams.length)];
+  return { teamA, teamB };
+}
+
+function buildMatchScenario() {
+  const { teamA, teamB } = pickTeams();
+  const gameNumber = Math.floor(Math.random() * 3) + 1; // 1..3
+  const sequence = simulateGameSequence(gameNumber); // [{a,b}, ...]
+  const last = sequence[sequence.length - 1];
+  const winner = last.a > last.b ? teamA : teamB;
+  const id = `match-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  const matchDateTime = new Date().toISOString().slice(0, -1);
+  return { id, teamA, teamB, gameNumber, sequence, winner, matchDateTime };
+}
+
+export default function () {
+  const sim = buildMatchScenario();
+
+  // new-game payload (always 0-0)
+  const newGame = {
+    id: sim.id,
+    teamA: sim.teamA,
+    teamB: sim.teamB,
+    teamAScore: 0,
+    teamBScore: 0,
+    winner: '',
+    matchDateTime: sim.matchDateTime,
+    gameNumber: sim.gameNumber,
+  };
+
+  // final payload (terminal score)
+  const last = sim.sequence[sim.sequence.length - 1];
+  const finalResult = {
+    id: sim.id,
+    teamA: sim.teamA,
+    teamB: sim.teamB,
+    teamAScore: last.a,
+    teamBScore: last.b,
+    winner: sim.winner,
+    matchDateTime: sim.matchDateTime,
+    gameNumber: sim.gameNumber,
+  };
+
+  if (SIMULATE) {
+    console.log('SIMULATED new-game payload:', JSON.stringify(newGame));
+    console.log(`SIMULATED update-score sequence (${sim.sequence.length - 1} events):`);
+    // Skip the first 0-0 snapshot; send one event per point thereafter
+    for (let i = 1; i < sim.sequence.length; i++) {
+      const step = sim.sequence[i];
+      const isLast = i === sim.sequence.length - 1;
+      const payload = {
+        id: sim.id,
+        teamA: sim.teamA,
+        teamB: sim.teamB,
+        teamAScore: step.a,
+        teamBScore: step.b,
+        winner: isLast ? sim.winner : '',
+        matchDateTime: sim.matchDateTime,
+        gameNumber: sim.gameNumber,
+      };
+      console.log('-', JSON.stringify(payload));
+    }
+    sleep(0.1);
+    return;
+  }
+
+  const params = { headers: { 'Content-Type': 'application/json' } };
+
   const startTime = Date.now();
-  const response = http.post('http://localhost:8080/api/match-results', payload, params);
+  const resNew = http.post(`${BASE_URL}/api/new-game`, JSON.stringify(newGame), params);
+
+  let ok = check(resNew, { 'new-game status is 200': (r) => r.status === 200 });
+  if (!ok) {
+    kafkaErrorRate.add(1);
+    console.error(`new-game failed for ${sim.id}: ${resNew.status} - ${resNew.body}`);
+    return; // abort this sequence
+  }
+
+  // Post each incremental score as an update-score event
+  for (let i = 1; i < sim.sequence.length; i++) {
+    const step = sim.sequence[i];
+    const isLast = i === sim.sequence.length - 1;
+    const payload = {
+      id: sim.id,
+      teamA: sim.teamA,
+      teamB: sim.teamB,
+      teamAScore: step.a,
+      teamBScore: step.b,
+      winner: isLast ? sim.winner : '',
+      matchDateTime: sim.matchDateTime,
+      gameNumber: sim.gameNumber,
+    };
+    const resUpd = http.post(`${BASE_URL}/api/update-score`, JSON.stringify(payload), params);
+
+    ok = check(resUpd, { 'update-score status is 200/201': (r) => r.status === 200 || r.status === 201 });
+    if (!ok) {
+      kafkaErrorRate.add(1);
+      console.error(`update-score failed for ${sim.id} at ${step.a}-${step.b}: ${resUpd.status} - ${resUpd.body}`);
+      break;
+    }
+
+    // small think-time between points
+    sleep(0.05 + Math.random() * 0.1);
+  }
+
   const endTime = Date.now();
-  
-  // Record custom metrics
   badmintonMatchesCounter.add(1);
   matchProcessingTime.add(endTime - startTime);
-  
-  // Enhanced response validation
-  const success = check(response, {
-    'status is 200': (r) => r.status === 200,
-    'response contains success message': (r) => r.body && r.body.includes('Match result sent to Kafka'),
-    'response time < 500ms': (r) => r.timings.duration < 500,
-    'response time < 1000ms': (r) => r.timings.duration < 1000,
-    'response time < 2000ms': (r) => r.timings.duration < 2000,
-    'has content-type header': (r) => r.headers['Content-Type'] !== undefined,
-    'body is not empty': (r) => r.body && r.body.length > 0,
-  });
-  
-  if (!success) {
-    kafkaErrorRate.add(1);
-    console.error(`Failed request for match ${matchResult.id}: ${response.status} - ${response.body}`);
-  } else {
-    kafkaErrorRate.add(0);
-  }
-  
-  // Adaptive think time based on response time (simulates user behavior)
-  let thinkTime = 1.0; // Base think time
-  if (response.timings.duration > 1000) {
-    thinkTime = 2.0; // Wait longer if server is slow
-  } else if (response.timings.duration < 200) {
-    thinkTime = 0.5; // Faster interactions with responsive server
-  }
-  
-  sleep(Math.random() * thinkTime + 0.3); // Variable think time
 }
 
 // Setup function - runs once before the test starts
 export function setup() {
   console.log('Starting badminton match load test...');
   console.log('Testing Thomas Cup Kafka API with realistic match scenarios');
-  
-  // Verify API is accessible
-  const healthCheck = http.get('http://localhost:8080/actuator/health');
+
+  if (SIMULATE) {
+    console.log('SIMULATE=1 set: will only print payloads, no HTTP calls');
+    return { startTime: Date.now() };
+  }
+
+  const healthCheck = http.get(`${BASE_URL}/actuator/health`);
   if (healthCheck.status !== 200) {
     console.error('API health check failed - ensure Spring Boot app is running');
   }
-  
   return { startTime: Date.now() };
 }
 

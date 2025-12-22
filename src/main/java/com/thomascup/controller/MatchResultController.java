@@ -38,30 +38,50 @@ public class MatchResultController {
     @Operation(summary = "Start a new game", description = "Posts a new game event to the new-game topic.")
     @PostMapping("/new-game")
     public ResponseEntity<String> startNewGame(@RequestBody MatchResult matchResult) {
-        // Generate ID if not provided
         if (matchResult.getId() == null || matchResult.getId().trim().isEmpty()) {
             matchResult.setId(UUID.randomUUID().toString());
         }
-        // Set current timestamp if not provided  
         if (matchResult.getMatchDateTime() == null) {
             matchResult.setMatchDateTime(java.time.LocalDateTime.now());
         }
-        kafkaTemplate.send("new-game", matchResult);
+        String key = matchResult.getId() + ":" + matchResult.getGameNumber();
+        kafkaTemplate.send("new-game", key, matchResult);
         return ResponseEntity.ok("New game started and sent to Kafka");
     }
     
     @Operation(summary = "Update match score", description = "Posts a score update event to the update-score topic.")
     @PostMapping("/update-score")
     public ResponseEntity<String> updateScore(@RequestBody MatchResult matchResult) {
-        // Generate ID if not provided (required for updates to identify the record)
         if (matchResult.getId() == null || matchResult.getId().trim().isEmpty()) {
             matchResult.setId(UUID.randomUUID().toString());
         }
-        // Set current timestamp if not provided
         if (matchResult.getMatchDateTime() == null) {
             matchResult.setMatchDateTime(java.time.LocalDateTime.now());
         }
-        kafkaTemplate.send("update-score", matchResult);
+        String key = matchResult.getId() + ":" + matchResult.getGameNumber();
+        kafkaTemplate.send("update-score", key, matchResult);
+
+        // If this update ends the game, also emit the final match result to the main topic
+        if (isGameOver(matchResult)) {
+            // Ensure winner is set
+            if (matchResult.getWinner() == null || matchResult.getWinner().isBlank()) {
+                if (matchResult.getTeamAScore() > matchResult.getTeamBScore()) {
+                    matchResult.setWinner(matchResult.getTeamA());
+                } else if (matchResult.getTeamBScore() > matchResult.getTeamAScore()) {
+                    matchResult.setWinner(matchResult.getTeamB());
+                }
+            }
+            matchResultProducer.sendMatchResult(matchResult);
+        }
         return ResponseEntity.ok("Score update sent to Kafka");
+    }
+
+    private boolean isGameOver(MatchResult m) {
+        int maxPoints = (m.getGameNumber() == 3) ? 15 : 21;
+        int a = m.getTeamAScore();
+        int b = m.getTeamBScore();
+        int cap = 30;
+        if (a >= cap || b >= cap) return true;
+        return (a >= maxPoints || b >= maxPoints) && Math.abs(a - b) >= 2;
     }
 }

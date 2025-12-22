@@ -23,24 +23,39 @@ check_app() {
     fi
 }
 
-# Check if Docker services are running
+# Check if Docker services are running (robust for Compose V2)
 check_docker() {
     echo -e "${YELLOW}Checking Docker services...${NC}"
-    if docker compose ps postgres | grep -q "running"; then
-        echo -e "${GREEN}✓ PostgreSQL is running${NC}"
+
+    # Postgres: ensure service is running and (if present) healthy
+    if docker compose ps --status running --services | grep -qx "postgres"; then
+        CID=$(docker compose ps -q postgres)
+        # Health may be undefined; treat 'none' as OK, but prefer 'healthy'
+        HEALTH=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$CID" 2>/dev/null || echo none)
+        if [ "$HEALTH" = "healthy" ] || [ "$HEALTH" = "none" ]; then
+            echo -e "${GREEN}✓ PostgreSQL is running (${HEALTH})${NC}"
+        else
+            echo -e "${RED}✗ PostgreSQL container is not healthy (status=$HEALTH)${NC}"
+            echo "Please check: docker compose logs -f postgres"
+            exit 1
+        fi
     else
         echo -e "${RED}✗ PostgreSQL not running${NC}"
         echo "Please start with: docker compose up -d postgres"
         exit 1
     fi
-    
-    if docker compose ps kafka | grep -q "running"; then
-        echo -e "${GREEN}✓ Kafka is running${NC}"
-    else
-        echo -e "${RED}✗ Kafka not running${NC}"
-        echo "Please start with: docker compose up -d kafka"
-        exit 1
-    fi
+
+
+    # Kafka: this stack uses kafka1/kafka2/kafka3 services
+    local brokers=("kafka1" "kafka2" "kafka3")
+    for b in "${brokers[@]}"; do
+        if ! docker compose ps --status running --services | grep -qx "$b"; then
+            echo -e "${RED}✗ $b not running${NC}"
+            echo "Start with: docker compose up -d $b"
+            exit 1
+        fi
+    done
+    echo -e "${GREEN}✓ Kafka brokers are running (kafka1, kafka2, kafka3)${NC}"
 }
 
 # Run load test
