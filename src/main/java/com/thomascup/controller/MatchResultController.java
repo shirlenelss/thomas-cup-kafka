@@ -1,5 +1,6 @@
 package com.thomascup.controller;
 
+import com.thomascup.metrics.ApiMetrics;
 import com.thomascup.model.MatchResult;
 import com.thomascup.service.MatchResultProducer;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,6 +21,9 @@ public class MatchResultController {
     @Autowired
     private KafkaTemplate<String, MatchResult> kafkaTemplate;
 
+    @Autowired
+    private ApiMetrics apiMetrics;
+
     @Operation(summary = "Send a match result", description = "Posts a match result event to Kafka.")
     @PostMapping("/match-results")
     public ResponseEntity<String> sendMatchResult(@RequestBody MatchResult matchResult) {
@@ -31,7 +35,8 @@ public class MatchResultController {
         if (matchResult.getMatchDateTime() == null) {
             matchResult.setMatchDateTime(java.time.LocalDateTime.now());
         }
-        matchResultProducer.sendMatchResult(matchResult);
+        apiMetrics.messageReceived("thomas-cup-matches", matchResult.getGameNumber());
+        apiMetrics.trackSend("thomas-cup-matches", matchResultProducer.sendMatchResult(matchResult));
         return ResponseEntity.ok("Match result sent to Kafka");
     }
     
@@ -45,7 +50,8 @@ public class MatchResultController {
             matchResult.setMatchDateTime(java.time.LocalDateTime.now());
         }
         String key = matchResult.getId() + ":" + matchResult.getGameNumber();
-        kafkaTemplate.send("new-game", key, matchResult);
+        apiMetrics.messageReceived("new-game", matchResult.getGameNumber());
+        apiMetrics.trackSend("new-game", kafkaTemplate.send("new-game", key, matchResult));
         return ResponseEntity.ok("New game started and sent to Kafka");
     }
     
@@ -59,7 +65,8 @@ public class MatchResultController {
             matchResult.setMatchDateTime(java.time.LocalDateTime.now());
         }
         String key = matchResult.getId() + ":" + matchResult.getGameNumber();
-        kafkaTemplate.send("update-score", key, matchResult);
+        apiMetrics.messageReceived("update-score", matchResult.getGameNumber());
+        apiMetrics.trackSend("update-score", kafkaTemplate.send("update-score", key, matchResult));
 
         // If this update ends the game, also emit the final match result to the main topic
         if (isGameOver(matchResult)) {
@@ -71,7 +78,8 @@ public class MatchResultController {
                     matchResult.setWinner(matchResult.getTeamB());
                 }
             }
-            matchResultProducer.sendMatchResult(matchResult);
+            apiMetrics.gameCompleted(matchResult.getGameNumber());
+            apiMetrics.trackSend("thomas-cup-matches", matchResultProducer.sendMatchResult(matchResult));
         }
         return ResponseEntity.ok("Score update sent to Kafka");
     }

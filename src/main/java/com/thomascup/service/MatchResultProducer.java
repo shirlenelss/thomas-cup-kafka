@@ -3,9 +3,11 @@ package com.thomascup.service;
 import com.thomascup.model.MatchResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -19,7 +21,10 @@ public class MatchResultProducer {
     // In-memory store for idempotency: id+gameNumber -> last processed MatchResult
     private final Map<String, MatchResult> latestResults = new ConcurrentHashMap<>();
 
-    public void sendMatchResult(MatchResult matchResult) {
+    /**
+     * @return the send future, or null if the result was skipped as a duplicate
+     */
+    public CompletableFuture<SendResult<String, MatchResult>> sendMatchResult(MatchResult matchResult) {
         String key = matchResult.getId() + ":" + matchResult.getGameNumber();
         MatchResult last = latestResults.get(key);
         boolean shouldSend = false;
@@ -32,8 +37,10 @@ public class MatchResultProducer {
                 matchResult.getTeamBScore() != last.getTeamBScore();
         }
         if (shouldSend) {
-            kafkaTemplate.send(TOPIC, key, matchResult);
+            CompletableFuture<SendResult<String, MatchResult>> future = kafkaTemplate.send(TOPIC, key, matchResult);
             latestResults.put(key, matchResult);
+            return future;
         }
+        return null;
     }
 }

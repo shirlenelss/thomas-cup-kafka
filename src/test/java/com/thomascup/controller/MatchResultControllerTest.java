@@ -1,6 +1,7 @@
 package com.thomascup.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.thomascup.metrics.ApiMetrics;
 import com.thomascup.model.MatchResult;
 import com.thomascup.service.MatchResultProducer;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,9 @@ public class MatchResultControllerTest {
     
     @MockBean
     private KafkaTemplate<String, MatchResult> kafkaTemplate;
+
+    @MockBean
+    private ApiMetrics apiMetrics;
 
     @Autowired
     private ObjectMapper objectMapper;
