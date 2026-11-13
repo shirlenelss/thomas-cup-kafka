@@ -37,7 +37,7 @@ public class MatchResultProducerTest {
             1 // gameNumber
         );
         matchResultProducer.sendMatchResult(result);
-        verify(kafkaTemplate).send("thomas-cup-matches", result);
+        verify(kafkaTemplate).send("thomas-cup-matches", "match-1:1", result);
     }
 
     @Test
@@ -65,7 +65,7 @@ public class MatchResultProducerTest {
         matchResultProducer.sendMatchResult(result1);
         matchResultProducer.sendMatchResult(result2);
         // Should only send once for identical id and matchDateTime
-        verify(kafkaTemplate).send("thomas-cup-matches", result1);
+        verify(kafkaTemplate).send("thomas-cup-matches", "match-1:1", result1);
     }
 
     @Test
@@ -93,7 +93,7 @@ public class MatchResultProducerTest {
         matchResultProducer.sendMatchResult(result1);
         matchResultProducer.sendMatchResult(result2);
         // Should send both times because the score changed
-        verify(kafkaTemplate).send("thomas-cup-matches", result1);
-        verify(kafkaTemplate).send("thomas-cup-matches", result2);
+        verify(kafkaTemplate).send("thomas-cup-matches", "match-1:1", result1);
+        verify(kafkaTemplate).send("thomas-cup-matches", "match-1:1", result2);
     }
 }

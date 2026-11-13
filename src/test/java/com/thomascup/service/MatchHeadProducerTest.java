@@ -39,7 +39,7 @@ public class MatchHeadProducerTest {
             Collections.singletonList(scores)
         );
         matchHeadProducer.sendMatchHead(head);
-        verify(kafkaTemplate).send("thomas-cup-matches", head);
+        verify(kafkaTemplate).send("thomas-cup-matches", "match-1", head);
     }
 
     @Test
@@ -48,7 +48,7 @@ public class MatchHeadProducerTest {
         MatchHead head1 = new MatchHead("match-1", "TeamA", "TeamB", LocalDateTime.now(), List.of(scores1));
         matchHeadProducer.sendMatchHead(head1);
         matchHeadProducer.sendMatchHead(head1); // Should not send again
-        verify(kafkaTemplate, times(1)).send("thomas-cup-matches", head1);
+        verify(kafkaTemplate, times(1)).send("thomas-cup-matches", "match-1", head1);
     }
 }
 

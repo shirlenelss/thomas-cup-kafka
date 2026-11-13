@@ -45,8 +45,9 @@ public class MatchResultDbConsumerTest {
         consumer.updateScoreInDb(record);
         ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Object> argCaptor = ArgumentCaptor.forClass(Object.class);
-        verify(jdbcTemplate).update(sqlCaptor.capture(), argCaptor.capture(), argCaptor.capture(), argCaptor.capture(), argCaptor.capture(), argCaptor.capture(), argCaptor.capture());
-        assertEquals("UPDATE match_results SET teamAScore = ?, teamBScore = ?, winner = ?, matchDateTime = ? WHERE id = ? AND gameNumber = ?", sqlCaptor.getValue());
+        verify(jdbcTemplate).update(sqlCaptor.capture(), argCaptor.capture(), argCaptor.capture(), argCaptor.capture(), argCaptor.capture(), argCaptor.capture(), argCaptor.capture(), argCaptor.capture(), argCaptor.capture());
+        assertEquals("INSERT INTO match_results (id, teamA, teamB, teamAScore, teamBScore, winner, matchDateTime, gameNumber) VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
+                "ON CONFLICT (id, gameNumber) DO UPDATE SET teamAScore = EXCLUDED.teamAScore, teamBScore = EXCLUDED.teamBScore, winner = EXCLUDED.winner, matchDateTime = EXCLUDED.matchDateTime", sqlCaptor.getValue());
     }
 }
 
